@@ -1,0 +1,20 @@
+# Build outputs
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+
+# Logs and diagnostics
+*.log
+*.binlog
+
+# OS files
+.DS_Store
+Thumbs.db

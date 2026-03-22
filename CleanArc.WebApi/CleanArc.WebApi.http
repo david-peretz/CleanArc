@@ -1,0 +1,31 @@
+@CleanArc.WebApi_HostAddress = http://localhost:5000
+
+### Login as manager
+POST {{CleanArc.WebApi_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "manager",
+  "password": "Manager123!"
+}
+
+### Create service request (anonymous)
+POST {{CleanArc.WebApi_HostAddress}}/api/service-requests
+Content-Type: application/json
+
+{
+  "citizenName": "Yael Cohen",
+  "description": "Large pothole near bike lane causing dangerous swerves.",
+  "category": 2,
+  "street": "Dizengoff 201",
+  "cityArea": "Center",
+  "affectsSensitivePopulation": true
+}
+
+### List open requests (requires token)
+GET {{CleanArc.WebApi_HostAddress}}/api/service-requests/open
+Authorization: Bearer {{token}}
+
+### Dashboard (manager role)
+GET {{CleanArc.WebApi_HostAddress}}/api/service-requests/dashboard
+Authorization: Bearer {{token}}

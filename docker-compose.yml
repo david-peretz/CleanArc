@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: cleanarc-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_strong_password123"
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "Your_strong_password123", "-Q", "SELECT 1", "-C"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  webapi:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cleanarc-webapi
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      Storage__UseInMemory: "false"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=CleanArcMunicipalityDb;User Id=sa;Password=Your_strong_password123;TrustServerCertificate=True;Encrypt=False"
+      Jwt__Issuer: "CleanArc.WebApi"
+      Jwt__Audience: "CleanArc.Client"
+      Jwt__Key: "super-secret-demo-key-change-in-production-2026"
+      Jwt__ExpiresMinutes: "120"
+    ports:
+      - "8080:8080"
