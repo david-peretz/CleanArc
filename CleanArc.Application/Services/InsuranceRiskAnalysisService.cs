@@ -21,9 +21,7 @@ public sealed class InsuranceRiskAnalysisService
         ValidateInput(command);
 
         var aiResult = await _pythonRiskAgentClient.AnalyzeAsync(command, cancellationToken);
-        ValidateOutput(aiResult);
-
-        var decision = ResolveDecision(aiResult.Score);
+        var decision = ValidateOutput(aiResult);
         return new RiskAssessmentResultDto(aiResult.Score, decision, aiResult.Reason.Trim());
     }
 
@@ -45,31 +43,28 @@ public sealed class InsuranceRiskAnalysisService
         }
     }
 
-    private static void ValidateOutput(PythonRiskResult aiResult)
+    private static RiskDecision ValidateOutput(PythonRiskResult aiResult)
     {
         if (aiResult.Score is < 0 or > 1)
         {
             throw new DomainRuleException("AI score must be in range [0,1].");
         }
 
+        if (string.IsNullOrWhiteSpace(aiResult.Decision))
+        {
+            throw new DomainRuleException("AI decision is required.");
+        }
+
+        if (!Enum.TryParse<RiskDecision>(aiResult.Decision.Trim(), ignoreCase: true, out var decision))
+        {
+            throw new DomainRuleException("AI decision must be one of: Approve, Review, Reject.");
+        }
+
         if (string.IsNullOrWhiteSpace(aiResult.Reason))
         {
             throw new DomainRuleException("AI reason is required.");
         }
-    }
 
-    private static RiskDecision ResolveDecision(double score)
-    {
-        if (score > 0.7)
-        {
-            return RiskDecision.Reject;
-        }
-
-        if (score >= 0.4)
-        {
-            return RiskDecision.Review;
-        }
-
-        return RiskDecision.Approve;
+        return decision;
     }
 }

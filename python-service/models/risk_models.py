@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -9,4 +11,5 @@ class RiskRequest(BaseModel):
 
 class RiskResponse(BaseModel):
     score: float = Field(ge=0, le=1)
+    decision: Literal["Approve", "Review", "Reject"]
     reason: str

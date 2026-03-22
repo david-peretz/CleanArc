@@ -47,7 +47,10 @@ public sealed class PythonRiskAgentClient : IPythonRiskAgentClient
                     throw new InvalidOperationException("Python service returned empty payload.");
                 }
 
-                return new PythonRiskResult(payload.Score, payload.Reason ?? string.Empty);
+                return new PythonRiskResult(
+                    payload.Score,
+                    payload.Decision ?? string.Empty,
+                    payload.Reason ?? string.Empty);
             }
             catch (Exception ex) when (attempt < _options.MaxRetries)
             {
@@ -68,9 +71,12 @@ public sealed class PythonRiskAgentClient : IPythonRiskAgentClient
         var finalPayload = await finalResponse.Content.ReadFromJsonAsync<PythonRiskResponse>(cancellationToken: cancellationToken)
             ?? throw new InvalidOperationException("Python service returned empty payload.");
 
-        return new PythonRiskResult(finalPayload.Score, finalPayload.Reason ?? string.Empty);
+        return new PythonRiskResult(
+            finalPayload.Score,
+            finalPayload.Decision ?? string.Empty,
+            finalPayload.Reason ?? string.Empty);
     }
 
     private sealed record PythonRiskRequest(int Age, int Claims, decimal Amount);
-    private sealed record PythonRiskResponse(double Score, string Reason);
+    private sealed record PythonRiskResponse(double Score, string Decision, string Reason);
 }
