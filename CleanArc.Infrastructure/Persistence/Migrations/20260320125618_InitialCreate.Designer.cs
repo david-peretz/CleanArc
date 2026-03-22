@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CleanArc.Infrastructure.Persistence.Migrations
 {
-    [DbContext(typeof(MunicipalDbContext))]
+    [DbContext(typeof(RiskDecisionSystemDbContext))]
     [Migration("20260320125618_InitialCreate")]
     partial class InitialCreate
     {

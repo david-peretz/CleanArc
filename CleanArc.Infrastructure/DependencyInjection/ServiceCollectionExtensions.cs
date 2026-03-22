@@ -1,4 +1,6 @@
 using CleanArc.Application.Abstractions;
+using CleanArc.Application.Interfaces;
+using CleanArc.Infrastructure.AiClient;
 using CleanArc.Infrastructure.Persistence;
 using CleanArc.Infrastructure.Policies;
 using CleanArc.Infrastructure.Repositories;
@@ -16,7 +18,7 @@ public static class ServiceCollectionExtensions
 
         if (useInMemory)
         {
-            services.AddDbContext<MunicipalDbContext>(options => options.UseInMemoryDatabase("CleanArcMunicipalityDbDev"));
+            services.AddDbContext<RiskDecisionSystemDbContext>(options => options.UseInMemoryDatabase("CleanArcMunicipalityDbDev"));
             services.AddScoped<IServiceRequestRepository, EfServiceRequestRepository>();
         }
         else
@@ -24,11 +26,22 @@ public static class ServiceCollectionExtensions
             var connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection");
 
-            services.AddDbContext<MunicipalDbContext>(options => options.UseSqlServer(connectionString));
+            services.AddDbContext<RiskDecisionSystemDbContext>(options => options.UseSqlServer(connectionString));
             services.AddScoped<IServiceRequestRepository, EfServiceRequestRepository>();
         }
 
         services.AddScoped<IPriorityScoringPolicy, MunicipalPriorityScoringPolicy>();
+        services.Configure<PythonRiskServiceOptions>(configuration.GetSection(PythonRiskServiceOptions.SectionName));
+        services.AddHttpClient<IPythonRiskAgentClient, PythonRiskAgentClient>((serviceProvider, client) =>
+        {
+            var options = serviceProvider
+                .GetRequiredService<Microsoft.Extensions.Options.IOptions<PythonRiskServiceOptions>>()
+                .Value;
+
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        });
+
         return services;
     }
 }

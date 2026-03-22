@@ -7,9 +7,9 @@ namespace CleanArc.Infrastructure.Repositories;
 
 public sealed class EfServiceRequestRepository : IServiceRequestRepository
 {
-    private readonly MunicipalDbContext _dbContext;
+    private readonly RiskDecisionSystemDbContext _dbContext;
 
-    public EfServiceRequestRepository(MunicipalDbContext dbContext)
+    public EfServiceRequestRepository(RiskDecisionSystemDbContext dbContext)
     {
         _dbContext = dbContext;
     }

@@ -1,87 +1,78 @@
-# CleanArc Interview Project - Tel Aviv Municipality
+# AI Risk Analysis System
 
-A production-style **Clean Architecture** sample in .NET 9 for a municipal interview.
+Clean Architecture with .NET Core + Python AI Agent.
 
-## Chosen Domain
-**Citizen Service Requests Management**
+## Overview
+This solution keeps a clean layered architecture in .NET and adds a Python AI service for insurance risk analysis.
 
-This API handles city issues reported by residents (hazards, lighting, sanitation, noise, graffiti), applies business rules and SLA-friendly priority scoring, secures internal flows with JWT roles, and exposes municipal dashboard KPIs.
+The API receives customer profile data and returns:
+- Risk score
+- Deterministic business decision (`Approve` / `Review` / `Reject`)
+- Human-readable explanation
 
 ## Architecture
-- `CleanArc.Domain`: Business entities, value objects, invariants, domain rules.
-- `CleanArc.Application`: Use cases, contracts (DTOs/commands), repository abstractions.
-- `CleanArc.Infrastructure`: EF Core SQL Server, migrations, identity seeding, in-memory repository, scoring policy.
-- `CleanArc.WebApi`: HTTP layer (controllers + middleware + JWT auth).
-- `CleanArc.Tests`: Console smoke test.
-- `CleanArc.IntegrationTests`: API integration tests with Testcontainers SQL Server.
+- `CleanArc.Domain`: domain rules and enums (including risk decision enum).
+- `CleanArc.Application`: use-cases and interfaces (`InsuranceRiskAnalysisService`, `IPythonRiskAgentClient`).
+- `CleanArc.Infrastructure`: external integrations (Python HTTP client, retries, resiliency).
+- `CleanArc.WebApi`: REST controllers (`POST /api/risk`).
+- `python-service/`: FastAPI service with deterministic statistical tooling.
 
-## Core Features
-- Clean Architecture dependency direction.
-- Real municipal workflow: `Opened -> InProgress -> Resolved/Rejected`.
-- Priority scoring by category + vulnerable population + area pressure.
-- ASP.NET Core Identity + roles:
-  - `Dispatcher`: can read and start handling.
-  - `Manager`: can also resolve/reject and view dashboard.
-- JWT login endpoint.
-- EF Core migrations and automatic `Database.Migrate()` in production mode.
+## Decision Rules
+Final business decision is deterministic in .NET (not delegated to AI):
+- `score > 0.7` -> `Reject`
+- `0.4 <= score <= 0.7` -> `Review`
+- `score < 0.4` -> `Approve`
 
-## API Endpoints
-Base path: `/api/service-requests`
+## Guardrails
+- Input validation before Python call
+- Output validation after Python call (`score` must be `[0,1]`, reason required)
+- Retry policy for external AI service calls
 
-- `POST /` create request (anonymous)
-- `GET /{id}` get by id (`Dispatcher`/`Manager`)
-- `GET /open` open and in-progress queue (`Dispatcher`/`Manager`)
-- `PATCH /{id}/start` assign and start handling (`Dispatcher`/`Manager`)
-- `PATCH /{id}/resolve` resolve request (`Manager`)
-- `PATCH /{id}/reject` reject request (`Manager`)
-- `GET /dashboard` municipal KPI snapshot (`Manager`)
+## Endpoints
+- `POST /api/risk`
+- Existing municipal endpoints remain available and unchanged.
 
-Auth endpoint:
-- `POST /api/auth/login`
+Example request:
+```json
+{
+  "age": 45,
+  "claims": 3,
+  "amount": 12000
+}
+```
 
-Seeded credentials:
-- `dispatcher / Dispatcher123!`
-- `manager / Manager123!`
-
-## Database
-Migrations folder:
-- `CleanArc.Infrastructure/Persistence/Migrations`
-
-Generate / apply (optional manual):
-```bash
-dotnet ef migrations add <Name> --project CleanArc.Infrastructure --startup-project CleanArc.WebApi
-dotnet ef database update --project CleanArc.Infrastructure --startup-project CleanArc.WebApi
+Example response:
+```json
+{
+  "score": 0.68,
+  "decision": "Review",
+  "reason": "Moderate risk profile requiring manual underwriter review"
+}
 ```
 
 ## Run Locally
+### 1) Python service
+```bash
+cd python-service
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000
+```
+
+### 2) .NET API
 ```bash
 dotnet restore CleanArcInterview.sln
-dotnet build CleanArcInterview.sln -c Release
-
 dotnet run --project CleanArc.WebApi
-# smoke scenario
- dotnet run --project CleanArc.Tests -c Release
-# integration tests
- dotnet test CleanArc.IntegrationTests -c Release
 ```
 
-## Run With Docker + SQL Server
-```bash
-docker compose up --build
-```
+### 3) Test
+`POST http://localhost:5000/api/risk`
 
-API URL: `http://localhost:8080`
+## Configuration
+`CleanArc.WebApi/appsettings*.json` contains:
+- `PythonRiskService:BaseUrl`
+- `PythonRiskService:AnalyzePath`
+- `PythonRiskService:TimeoutSeconds`
+- `PythonRiskService:MaxRetries`
 
-## CI
-GitHub Actions workflow at `.github/workflows/ci.yml`:
-- restore
-- build
-- smoke test
-- integration tests (Testcontainers)
-
-## Why This Is Interview-Ready
-- Real municipal scenario, not generic CRUD only.
-- Explicit business invariants and protected workflows.
-- Identity + JWT + RBAC.
-- SQL Server migrations and containerized deployment.
-- CI pipeline with integration testing discipline.
+## Notes
+This implementation is production-oriented scaffolding: clean separation of concerns, deterministic decisions, and safe AI integration.

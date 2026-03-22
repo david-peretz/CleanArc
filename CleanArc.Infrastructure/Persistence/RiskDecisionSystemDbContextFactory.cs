@@ -3,16 +3,16 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace CleanArc.Infrastructure.Persistence;
 
-public sealed class MunicipalDbContextFactory : IDesignTimeDbContextFactory<MunicipalDbContext>
+public sealed class RiskDecisionSystemDbContextFactory : IDesignTimeDbContextFactory<RiskDecisionSystemDbContext>
 {
-    public MunicipalDbContext CreateDbContext(string[] args)
+    public RiskDecisionSystemDbContext CreateDbContext(string[] args)
     {
-        var optionsBuilder = new DbContextOptionsBuilder<MunicipalDbContext>();
+        var optionsBuilder = new DbContextOptionsBuilder<RiskDecisionSystemDbContext>();
 
         var connectionString =
             "Server=localhost,1433;Database=CleanArcMunicipalityDbDesign;User Id=sa;Password=Your_strong_password123;TrustServerCertificate=True;Encrypt=False";
 
         optionsBuilder.UseSqlServer(connectionString);
-        return new MunicipalDbContext(optionsBuilder.Options);
+        return new RiskDecisionSystemDbContext(optionsBuilder.Options);
     }
 }

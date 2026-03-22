@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<MunicipalServiceRequestService>();
+builder.Services.AddScoped<InsuranceRiskAnalysisService>();
 
 builder.Services.AddIdentityCore<IdentityUser>(options =>
     {
@@ -24,7 +25,7 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
         options.Password.RequiredLength = 8;
     })
     .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<MunicipalDbContext>();
+    .AddEntityFrameworkStores<RiskDecisionSystemDbContext>();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.AddScoped<JwtTokenService>();
@@ -55,7 +56,7 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<MunicipalDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<RiskDecisionSystemDbContext>();
     var useInMemory = app.Configuration.GetValue<bool>("Storage:UseInMemory");
 
     if (!useInMemory)

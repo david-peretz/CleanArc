@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace CleanArc.Infrastructure.Persistence.Migrations
 {
-    [DbContext(typeof(MunicipalDbContext))]
-    partial class MunicipalDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(RiskDecisionSystemDbContext))]
+    partial class RiskDecisionSystemDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
         {

@@ -29,3 +29,13 @@ Authorization: Bearer {{token}}
 ### Dashboard (manager role)
 GET {{CleanArc.WebApi_HostAddress}}/api/service-requests/dashboard
 Authorization: Bearer {{token}}
+
+### Analyze insurance risk (anonymous)
+POST {{CleanArc.WebApi_HostAddress}}/api/risk
+Content-Type: application/json
+
+{
+  "age": 45,
+  "claims": 3,
+  "amount": 12000
+}

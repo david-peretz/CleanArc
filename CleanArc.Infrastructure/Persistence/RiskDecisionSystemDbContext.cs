@@ -5,9 +5,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CleanArc.Infrastructure.Persistence;
 
-public sealed class MunicipalDbContext : IdentityDbContext<IdentityUser>
+public sealed class RiskDecisionSystemDbContext : IdentityDbContext<IdentityUser>
 {
-    public MunicipalDbContext(DbContextOptions<MunicipalDbContext> options)
+    public RiskDecisionSystemDbContext(DbContextOptions<RiskDecisionSystemDbContext> options)
         : base(options)
     {
     }
