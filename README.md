@@ -67,6 +67,26 @@ dotnet run --project CleanArc.WebApi
 ### 3) Test
 `POST http://localhost:5000/api/risk`
 
+## React Client (Risk UI)
+A lightweight React client is served directly by `CleanArc.WebApi` as static files.
+
+Location:
+- `CleanArc.WebApi/wwwroot/risk-ui/index.html`
+
+Capabilities:
+- Input form for `age`, `claims`, `amount`
+- Result display for `score`, `decision`, `reason`
+- Decision history (stored in browser `localStorage`)
+- Explainability section (with specific notes for reject outcomes)
+- Charts:
+  - Score trend over time
+  - Decision distribution (`Approve` / `Review` / `Reject`)
+
+Run and open:
+1. Start Python service (port `8000`)
+2. Start .NET API (`dotnet run --project CleanArc.WebApi --launch-profile http`)
+3. Open `http://localhost:5149/risk-ui/`
+
 ## Configuration
 `CleanArc.WebApi/appsettings*.json` contains:
 - `PythonRiskService:BaseUrl`
