@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -51,7 +51,7 @@ namespace CleanArc.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ServiceRequests",
+                name: "InsuranceClaims",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
@@ -71,7 +71,7 @@ namespace CleanArc.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ServiceRequests", x => x.Id);
+                    table.PrimaryKey("PK_InsuranceClaims", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -239,7 +239,7 @@ namespace CleanArc.Infrastructure.Persistence.Migrations
                 name: "AspNetUserTokens");
 
             migrationBuilder.DropTable(
-                name: "ServiceRequests");
+                name: "InsuranceClaims");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
@@ -249,3 +249,4 @@ namespace CleanArc.Infrastructure.Persistence.Migrations
         }
     }
 }
+

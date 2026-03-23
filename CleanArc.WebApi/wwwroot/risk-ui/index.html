@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Risk Decision Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --panel: #fffdf8;
+      --ink: #1f2430;
+      --muted: #677086;
+      --accent: #d95f02;
+      --accent-soft: #ffe4d0;
+      --ok: #2a9d8f;
+      --warn: #e9c46a;
+      --bad: #d62828;
+      --line: #e7ded2;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 10% 10%, #fff3d4 0%, transparent 30%),
+        radial-gradient(circle at 90% 20%, #ffd2c7 0%, transparent 28%),
+        linear-gradient(135deg, #f6f4ef 0%, #f5efe4 100%);
+      min-height: 100vh;
+    }
+
+    .wrap {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .hero {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 10px 26px rgba(31, 36, 48, 0.08);
+      animation: pop 450ms ease-out;
+    }
+
+    .badge {
+      display: inline-flex;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: #933f00;
+      font: 600 12px "IBM Plex Mono", monospace;
+      margin-bottom: 10px;
+    }
+
+    h1 { margin: 0 0 8px; font-size: 30px; }
+    p { margin: 0; color: var(--muted); }
+
+    .grid {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+
+    @media (min-width: 980px) {
+      .grid { grid-template-columns: 1.1fr 0.9fr; }
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 8px 20px rgba(31, 36, 48, 0.06);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 760px) {
+      .form-row { grid-template-columns: 1fr; }
+    }
+
+    label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+
+    input {
+      width: 100%;
+      border: 1px solid #d9cec1;
+      border-radius: 10px;
+      padding: 10px;
+      font: 500 14px "IBM Plex Mono", monospace;
+      background: #fff;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 14px;
+      font: 600 14px "Space Grotesk", sans-serif;
+      background: var(--accent);
+      color: #fff;
+      cursor: pointer;
+    }
+
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+
+    .result {
+      margin-top: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    @media (max-width: 760px) {
+      .result { grid-template-columns: 1fr; }
+    }
+
+    .pill {
+      border-radius: 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+    }
+
+    .pill-title { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    .pill-value { font: 700 18px "IBM Plex Mono", monospace; }
+
+    .decision-Approve { color: var(--ok); }
+    .decision-Review { color: #b7791f; }
+    .decision-Reject { color: var(--bad); }
+
+    .history-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .hist-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .hist-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .mono { font-family: "IBM Plex Mono", monospace; }
+    .small { font-size: 12px; color: var(--muted); }
+
+    .explain {
+      margin-top: 12px;
+      border-left: 4px solid var(--accent);
+      padding-left: 10px;
+      color: #4d3b2e;
+    }
+
+    .charts {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .chart-box {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fff;
+      padding: 8px;
+      min-height: 240px;
+    }
+
+    @keyframes pop {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useEffect, useMemo, useRef, useState } = React;
+
+    function ScoreTrendChart({ history }) {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+
+      useEffect(() => {
+        if (!canvasRef.current) return;
+        if (chartRef.current) chartRef.current.destroy();
+
+        chartRef.current = new Chart(canvasRef.current, {
+          type: "line",
+          data: {
+            labels: history.map((_, i) => `#${i + 1}`),
+            datasets: [{
+              label: "Score",
+              data: history.map(h => h.score),
+              borderColor: "#d95f02",
+              backgroundColor: "rgba(217,95,2,0.2)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4
+            }]
+          },
+          options: {
+            maintainAspectRatio: false,
+            scales: { y: { min: 0, max: 1 } },
+            plugins: { legend: { display: false } }
+          }
+        });
+
+        return () => chartRef.current && chartRef.current.destroy();
+      }, [history]);
+
+      return <canvas ref={canvasRef} />;
+    }
+
+    function DecisionMixChart({ history }) {
+      const canvasRef = useRef(null);
+      const chartRef = useRef(null);
+
+      const data = useMemo(() => {
+        const map = { Approve: 0, Review: 0, Reject: 0 };
+        history.forEach(h => { if (map[h.decision] !== undefined) map[h.decision] += 1; });
+        return map;
+      }, [history]);
+
+      useEffect(() => {
+        if (!canvasRef.current) return;
+        if (chartRef.current) chartRef.current.destroy();
+
+        chartRef.current = new Chart(canvasRef.current, {
+          type: "doughnut",
+          data: {
+            labels: ["Approve", "Review", "Reject"],
+            datasets: [{
+              data: [data.Approve, data.Review, data.Reject],
+              backgroundColor: ["#2a9d8f", "#e9c46a", "#d62828"]
+            }]
+          },
+          options: { maintainAspectRatio: false }
+        });
+
+        return () => chartRef.current && chartRef.current.destroy();
+      }, [data]);
+
+      return <canvas ref={canvasRef} />;
+    }
+
+    function explainWhy(result, payload) {
+      if (!result) return "";
+      if (result.decision !== "Reject") return "";
+
+      const bullets = [];
+      if (payload.claims >= 5) bullets.push("High claim frequency increased the risk profile.");
+      if (payload.amount >= 20000) bullets.push("Requested amount is high and pushes severity risk.");
+      if (payload.age < 23 || payload.age > 70) bullets.push("Age segment contributes to higher actuarial uncertainty.");
+      if (result.score > 0.7) bullets.push("Model score is above reject threshold (> 0.7).");
+
+      if (bullets.length === 0) {
+        bullets.push("Combined risk factors crossed rejection threshold.");
+      }
+
+      return bullets.join(" ");
+    }
+
+    function App() {
+      const [age, setAge] = useState(45);
+      const [claims, setClaims] = useState(2);
+      const [amount, setAmount] = useState(12000);
+      const [loading, setLoading] = useState(false);
+      const [error, setError] = useState("");
+      const [result, setResult] = useState(null);
+      const [history, setHistory] = useState(() => {
+        try {
+          const raw = localStorage.getItem("risk-history-v1");
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      });
+
+      useEffect(() => {
+        localStorage.setItem("risk-history-v1", JSON.stringify(history));
+      }, [history]);
+
+      async function onSubmit(e) {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        const payload = { age: Number(age), claims: Number(claims), amount: Number(amount) };
+
+        try {
+          const res = await fetch("/api/risk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+
+          if (!res.ok) {
+            const msg = await res.text();
+            throw new Error(msg || "Risk analysis request failed.");
+          }
+
+          const data = await res.json();
+          const entry = {
+            ts: new Date().toISOString(),
+            age: payload.age,
+            claims: payload.claims,
+            amount: payload.amount,
+            score: data.score,
+            decision: data.decision,
+            reason: data.reason
+          };
+
+          setResult(entry);
+          setHistory(prev => [entry, ...prev].slice(0, 30));
+        } catch (err) {
+          setError(err.message || "Unexpected error.");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      const explain = result ? explainWhy(result, result) : "";
+
+      return (
+        <div className="wrap">
+          <section className="hero">
+            <span className="badge">AI Risk Agent Console</span>
+            <h1>Insurance Decision Studio</h1>
+            <p>Submit age, claims, and amount to receive score, decision, reason, explainability, and trend insights.</p>
+          </section>
+
+          <section className="grid">
+            <div className="card">
+              <h3>Risk Input</h3>
+              <form onSubmit={onSubmit}>
+                <div className="form-row">
+                  <div>
+                    <label>Age</label>
+                    <input type="number" min="18" max="120" value={age} onChange={e => setAge(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Claims</label>
+                    <input type="number" min="0" max="100" value={claims} onChange={e => setClaims(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Amount</label>
+                    <input type="number" min="0" step="100" value={amount} onChange={e => setAmount(e.target.value)} />
+                  </div>
+                </div>
+                <button className="btn" disabled={loading}>{loading ? "Analyzing..." : "Analyze with AI Agent"}</button>
+              </form>
+
+              {error && <p style={{ color: "#d62828", marginTop: "10px" }}>{error}</p>}
+
+              {result && (
+                <>
+                  <div className="result">
+                    <div className="pill">
+                      <div className="pill-title">score</div>
+                      <div className="pill-value">{Number(result.score).toFixed(2)}</div>
+                    </div>
+                    <div className="pill">
+                      <div className="pill-title">decision</div>
+                      <div className={`pill-value decision-${result.decision}`}>{result.decision}</div>
+                    </div>
+                    <div className="pill">
+                      <div className="pill-title">reason</div>
+                      <div className="pill-value" style={{ fontSize: "14px", fontFamily: "Space Grotesk" }}>{result.reason}</div>
+                    </div>
+                  </div>
+
+                  {explain && (
+                    <div className="explain">
+                      <strong>Explainability:</strong> {explain}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="card">
+              <h3>Decision History</h3>
+              <ul className="history-list">
+                {history.length === 0 && <li className="small">No decisions yet.</li>}
+                {history.map((h, idx) => (
+                  <li className="hist-item" key={`${h.ts}-${idx}`}>
+                    <div className="hist-top">
+                      <span className={`mono decision-${h.decision}`}>{h.decision}</span>
+                      <span className="small">{new Date(h.ts).toLocaleString()}</span>
+                    </div>
+                    <div className="small mono">score: {Number(h.score).toFixed(2)} | age: {h.age} | claims: {h.claims} | amount: {h.amount}</div>
+                    <div style={{ marginTop: "4px" }}>{h.reason}</div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <section className="card" style={{ marginTop: "14px" }}>
+            <h3>Charts</h3>
+            <div className="charts">
+              <div className="chart-box"><ScoreTrendChart history={history.slice().reverse()} /></div>
+              <div className="chart-box"><DecisionMixChart history={history} /></div>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>

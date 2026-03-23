@@ -1,4 +1,4 @@
-using CleanArc.Domain.Entities;
+using CleanArc.Domain.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -12,15 +12,15 @@ public sealed class RiskDecisionSystemDbContext : IdentityDbContext<IdentityUser
     {
     }
 
-    public DbSet<ServiceRequest> ServiceRequests => Set<ServiceRequest>();
+    public DbSet<InsuranceClaim> InsuranceClaims => Set<InsuranceClaim>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        var entity = modelBuilder.Entity<ServiceRequest>();
+        var entity = modelBuilder.Entity<InsuranceClaim>();
 
-        entity.ToTable("ServiceRequests");
+        entity.ToTable("InsuranceClaims");
         entity.HasKey(x => x.Id);
         entity.Property(x => x.CitizenName).HasMaxLength(150).IsRequired();
         entity.Property(x => x.Description).HasMaxLength(1000).IsRequired();
@@ -36,3 +36,4 @@ public sealed class RiskDecisionSystemDbContext : IdentityDbContext<IdentityUser
         });
     }
 }
+

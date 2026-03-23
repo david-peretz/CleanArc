@@ -2,7 +2,7 @@ using CleanArc.Domain.Enums;
 
 namespace CleanArc.Application.Contracts;
 
-public sealed record ServiceRequestDto(
+public sealed record InsuranceClaimDto(
     Guid Id,
     string CitizenName,
     string Description,
@@ -17,3 +17,4 @@ public sealed record ServiceRequestDto(
     DateTime? HandlingStartedAtUtc,
     DateTime? ClosedAtUtc,
     string? ClosureNotes);
+

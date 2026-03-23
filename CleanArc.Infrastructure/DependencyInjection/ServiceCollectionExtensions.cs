@@ -18,8 +18,8 @@ public static class ServiceCollectionExtensions
 
         if (useInMemory)
         {
-            services.AddDbContext<RiskDecisionSystemDbContext>(options => options.UseInMemoryDatabase("CleanArcMunicipalityDbDev"));
-            services.AddScoped<IServiceRequestRepository, EfServiceRequestRepository>();
+            services.AddDbContext<RiskDecisionSystemDbContext>(options => options.UseInMemoryDatabase("CleanArcInsuranceDbDev"));
+            services.AddScoped<IInsuranceClaimRepository, EfInsuranceClaimRepository>();
         }
         else
         {
@@ -27,10 +27,10 @@ public static class ServiceCollectionExtensions
                 ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection");
 
             services.AddDbContext<RiskDecisionSystemDbContext>(options => options.UseSqlServer(connectionString));
-            services.AddScoped<IServiceRequestRepository, EfServiceRequestRepository>();
+            services.AddScoped<IInsuranceClaimRepository, EfInsuranceClaimRepository>();
         }
 
-        services.AddScoped<IPriorityScoringPolicy, MunicipalPriorityScoringPolicy>();
+        services.AddScoped<IPriorityScoringPolicy, InsuranceClaimPriorityScoringPolicy>();
         services.Configure<PythonRiskServiceOptions>(configuration.GetSection(PythonRiskServiceOptions.SectionName));
         services.AddHttpClient<IPythonRiskAgentClient, PythonRiskAgentClient>((serviceProvider, client) =>
         {
@@ -45,3 +45,5 @@ public static class ServiceCollectionExtensions
         return services;
     }
 }
+
+

@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddScoped<MunicipalServiceRequestService>();
+builder.Services.AddScoped<InsuranceClaimService>();
 builder.Services.AddScoped<InsuranceRiskAnalysisService>();
 
 builder.Services.AddIdentityCore<IdentityUser>(options =>
@@ -69,6 +69,8 @@ using (var scope = app.Services.CreateScope())
 
 app.UseMiddleware<ExceptionMappingMiddleware>();
 app.UseHttpsRedirection();
+app.UseDefaultFiles();
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -76,3 +78,4 @@ app.MapControllers();
 app.Run();
 
 public partial class Program;
+

@@ -1,8 +1,9 @@
-using CleanArc.Domain.Entities;
+using CleanArc.Domain.Claims;
 
 namespace CleanArc.Application.Abstractions;
 
 public interface IPriorityScoringPolicy
 {
-    int Calculate(ServiceRequest request);
+    int Calculate(InsuranceClaim request);
 }
+

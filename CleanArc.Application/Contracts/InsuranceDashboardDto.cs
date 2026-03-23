@@ -1,6 +1,6 @@
 namespace CleanArc.Application.Contracts;
 
-public sealed record MunicipalityDashboardDto(
+public sealed record InsuranceDashboardDto(
     int TotalRequests,
     int Opened,
     int InProgress,
@@ -8,3 +8,4 @@ public sealed record MunicipalityDashboardDto(
     int Rejected,
     double AvgHoursToClose,
     IReadOnlyList<HotspotAreaDto> HotspotAreas);
+

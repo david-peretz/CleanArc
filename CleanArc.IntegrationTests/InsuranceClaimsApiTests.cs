@@ -7,11 +7,11 @@ using System.Net.Http.Json;
 
 namespace CleanArc.IntegrationTests;
 
-public sealed class ServiceRequestsApiTests : IClassFixture<ApiTestFactory>
+public sealed class InsuranceClaimsApiTests : IClassFixture<ApiTestFactory>
 {
     private readonly ApiTestFactory _factory;
 
-    public ServiceRequestsApiTests(ApiTestFactory factory)
+    public InsuranceClaimsApiTests(ApiTestFactory factory)
     {
         _factory = factory;
     }
@@ -33,7 +33,7 @@ public sealed class ServiceRequestsApiTests : IClassFixture<ApiTestFactory>
         Assert.NotNull(login);
         Assert.False(string.IsNullOrWhiteSpace(login!.AccessToken));
 
-        var createResponse = await client.PostAsJsonAsync("/api/service-requests", new CreateServiceRequestRequest(
+        var createResponse = await client.PostAsJsonAsync("/api/service-requests", new CreateInsuranceClaimRequest(
             "Neta Cohen",
             "Street light is flickering for two days near playground crossing.",
             3,
@@ -53,3 +53,4 @@ public sealed class ServiceRequestsApiTests : IClassFixture<ApiTestFactory>
         Assert.NotEmpty(list!);
     }
 }
+

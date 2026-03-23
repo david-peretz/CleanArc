@@ -4,12 +4,12 @@ using CleanArc.Domain.Enums;
 using CleanArc.Infrastructure.Policies;
 using CleanArc.Infrastructure.Repositories;
 
-var repository = new InMemoryServiceRequestRepository();
-var scoringPolicy = new MunicipalPriorityScoringPolicy();
-var service = new MunicipalServiceRequestService(repository, scoringPolicy);
+var repository = new InMemoryInsuranceClaimRepository();
+var scoringPolicy = new InsuranceClaimPriorityScoringPolicy();
+var service = new InsuranceClaimService(repository, scoringPolicy);
 
 var id = await service.CreateAsync(
-    new CreateServiceRequestCommand(
+    new CreateInsuranceClaimCommand(
         "Dana Levi",
         "Broken traffic light on Ibn Gabirol near school crossing.",
         RequestCategory.StreetLighting,
@@ -18,7 +18,7 @@ var id = await service.CreateAsync(
         true));
 
 var started = await service.StartHandlingAsync(id, new StartHandlingCommand("Electricity Department"));
-var resolved = await service.ResolveAsync(id, new CloseServiceRequestCommand("Technician replaced the damaged switch."));
+var resolved = await service.ResolveAsync(id, new CloseInsuranceClaimCommand("Technician replaced the damaged switch."));
 var dashboard = await service.GetDashboardAsync();
 
 if (!started || !resolved || dashboard.Resolved != 1)
@@ -30,3 +30,5 @@ if (!started || !resolved || dashboard.Resolved != 1)
 
 Console.WriteLine("Smoke test passed.");
 Console.WriteLine($"Avg close time (hours): {dashboard.AvgHoursToClose}");
+
+

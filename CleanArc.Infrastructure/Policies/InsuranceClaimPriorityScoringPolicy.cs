@@ -1,12 +1,12 @@
 using CleanArc.Application.Abstractions;
-using CleanArc.Domain.Entities;
+using CleanArc.Domain.Claims;
 using CleanArc.Domain.Enums;
 
 namespace CleanArc.Infrastructure.Policies;
 
-public sealed class MunicipalPriorityScoringPolicy : IPriorityScoringPolicy
+public sealed class InsuranceClaimPriorityScoringPolicy : IPriorityScoringPolicy
 {
-    public int Calculate(ServiceRequest request)
+    public int Calculate(InsuranceClaim request)
     {
         var baseScore = request.Category switch
         {
@@ -33,3 +33,5 @@ public sealed class MunicipalPriorityScoringPolicy : IPriorityScoringPolicy
         return Math.Min(baseScore, 100);
     }
 }
+
+

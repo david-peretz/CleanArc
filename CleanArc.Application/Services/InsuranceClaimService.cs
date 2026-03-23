@@ -1,18 +1,18 @@
 using CleanArc.Application.Abstractions;
 using CleanArc.Application.Contracts;
-using CleanArc.Domain.Entities;
+using CleanArc.Domain.Claims;
 using CleanArc.Domain.Enums;
 using CleanArc.Domain.ValueObjects;
 
 namespace CleanArc.Application.Services;
 
-public sealed class MunicipalServiceRequestService
+public sealed class InsuranceClaimService
 {
-    private readonly IServiceRequestRepository _repository;
+    private readonly IInsuranceClaimRepository _repository;
     private readonly IPriorityScoringPolicy _priorityScoringPolicy;
 
-    public MunicipalServiceRequestService(
-        IServiceRequestRepository repository,
+    public InsuranceClaimService(
+        IInsuranceClaimRepository repository,
         IPriorityScoringPolicy priorityScoringPolicy)
     {
         _repository = repository;
@@ -20,10 +20,10 @@ public sealed class MunicipalServiceRequestService
     }
 
     public async Task<Guid> CreateAsync(
-        CreateServiceRequestCommand command,
+        CreateInsuranceClaimCommand command,
         CancellationToken cancellationToken = default)
     {
-        var request = ServiceRequest.Create(
+        var request = InsuranceClaim.Create(
             command.CitizenName,
             command.Description,
             command.Category,
@@ -37,13 +37,13 @@ public sealed class MunicipalServiceRequestService
         return request.Id;
     }
 
-    public async Task<ServiceRequestDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<InsuranceClaimDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var request = await _repository.GetByIdAsync(id, cancellationToken);
         return request is null ? null : Map(request);
     }
 
-    public async Task<IReadOnlyList<ServiceRequestDto>> GetOpenRequestsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<InsuranceClaimDto>> GetOpenRequestsAsync(CancellationToken cancellationToken = default)
     {
         var all = await _repository.GetAllAsync(cancellationToken);
 
@@ -73,7 +73,7 @@ public sealed class MunicipalServiceRequestService
 
     public async Task<bool> ResolveAsync(
         Guid id,
-        CloseServiceRequestCommand command,
+        CloseInsuranceClaimCommand command,
         CancellationToken cancellationToken = default)
     {
         var request = await _repository.GetByIdAsync(id, cancellationToken);
@@ -89,7 +89,7 @@ public sealed class MunicipalServiceRequestService
 
     public async Task<bool> RejectAsync(
         Guid id,
-        CloseServiceRequestCommand command,
+        CloseInsuranceClaimCommand command,
         CancellationToken cancellationToken = default)
     {
         var request = await _repository.GetByIdAsync(id, cancellationToken);
@@ -103,7 +103,7 @@ public sealed class MunicipalServiceRequestService
         return true;
     }
 
-    public async Task<MunicipalityDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default)
+    public async Task<InsuranceDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default)
     {
         var all = await _repository.GetAllAsync(cancellationToken);
         var closed = all.Where(x => x.ClosedAtUtc.HasValue).ToList();
@@ -119,7 +119,7 @@ public sealed class MunicipalServiceRequestService
             .Select(g => new HotspotAreaDto(g.Key, g.Count()))
             .ToList();
 
-        return new MunicipalityDashboardDto(
+        return new InsuranceDashboardDto(
             all.Count,
             all.Count(x => x.Status == RequestStatus.Opened),
             all.Count(x => x.Status == RequestStatus.InProgress),
@@ -129,9 +129,9 @@ public sealed class MunicipalServiceRequestService
             hotspots);
     }
 
-    private static ServiceRequestDto Map(ServiceRequest request)
+    private static InsuranceClaimDto Map(InsuranceClaim request)
     {
-        return new ServiceRequestDto(
+        return new InsuranceClaimDto(
             request.Id,
             request.CitizenName,
             request.Description,
@@ -148,3 +148,5 @@ public sealed class MunicipalServiceRequestService
             request.ClosureNotes);
     }
 }
+
+
