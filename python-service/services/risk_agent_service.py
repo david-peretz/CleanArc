@@ -1,27 +1,166 @@
+import asyncio
 import json
 import os
+from copy import deepcopy
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict
+from uuid import uuid4
 
-from models.risk_models import RiskRequest, RiskResponse
+from models.risk_models import RiskJobStatusResponse, RiskRequest, RiskResponse
 from tools.statistical_tools import StatisticalRiskTools
+
+
+@dataclass
+class _CacheEntry:
+    response: RiskResponse
+    expires_at: datetime
 
 
 class RiskAgentService:
     def __init__(self) -> None:
         self._llm = self._build_llm()
+        self._cache_ttl_seconds = int(os.getenv("RISK_CACHE_TTL_SECONDS", "300"))
+        self._cache: dict[str, _CacheEntry] = {}
+
+        self._jobs: dict[str, RiskJobStatusResponse] = {}
+        self._queue: asyncio.Queue[str] = asyncio.Queue()
+        self._worker_task: asyncio.Task | None = None
+        self._jobs_lock = asyncio.Lock()
+
+    async def start_worker(self) -> None:
+        if self._worker_task is None or self._worker_task.done():
+            self._worker_task = asyncio.create_task(self._worker_loop(), name="risk-worker")
+
+    async def stop_worker(self) -> None:
+        if self._worker_task is None:
+            return
+
+        self._worker_task.cancel()
+        try:
+            await self._worker_task
+        except asyncio.CancelledError:
+            pass
+        finally:
+            self._worker_task = None
+
+    async def enqueue_analysis(self, request: RiskRequest) -> str:
+        job_id = str(uuid4())
+        job = RiskJobStatusResponse(job_id=job_id, status="queued")
+
+        async with self._jobs_lock:
+            self._jobs[job_id] = job
+            setattr(self._jobs[job_id], "_request", request)
+
+        await self._queue.put(job_id)
+        return job_id
+
+    async def get_job_status(self, job_id: str) -> RiskJobStatusResponse | None:
+        async with self._jobs_lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                return None
+            return deepcopy(job)
 
     def analyze(self, request: RiskRequest) -> RiskResponse:
+        return self.analyze_sync(request)
+
+    def analyze_sync(self, request: RiskRequest) -> RiskResponse:
+        key = self._request_key(request)
+        cached = self._try_get_cache(key)
+        if cached is not None:
+            cached.source = "cache"
+            return cached
+
         score = StatisticalRiskTools.combined_score(request.age, request.claims, request.amount)
         fallback = self._deterministic_decision(score)
 
         if self._llm is None:
-            return RiskResponse(score=round(score, 2), decision=fallback["decision"], reason=fallback["reason"])
+            response = RiskResponse(
+                score=round(score, 2),
+                decision=fallback["decision"],
+                reason=fallback["reason"],
+                source="fallback",
+            )
+            self._store_cache(key, response)
+            return response
 
         dynamic = self._dynamic_decision(request, score)
         if dynamic is None:
-            return RiskResponse(score=round(score, 2), decision=fallback["decision"], reason=fallback["reason"])
+            response = RiskResponse(
+                score=round(score, 2),
+                decision=fallback["decision"],
+                reason=fallback["reason"],
+                source="fallback",
+            )
+            self._store_cache(key, response)
+            return response
 
-        return RiskResponse(score=round(score, 2), decision=dynamic["decision"], reason=dynamic["reason"])
+        response = RiskResponse(
+            score=round(score, 2),
+            decision=dynamic["decision"],
+            reason=dynamic["reason"],
+            source="llm",
+        )
+        self._store_cache(key, response)
+        return response
+
+    async def _worker_loop(self) -> None:
+        while True:
+            job_id = await self._queue.get()
+            try:
+                async with self._jobs_lock:
+                    job = self._jobs.get(job_id)
+                    if job is None:
+                        continue
+
+                    job.status = "running"
+                    request = getattr(job, "_request", None)
+
+                if request is None:
+                    raise ValueError("Missing request payload for queued job.")
+
+                result = await asyncio.to_thread(self.analyze_sync, request)
+
+                async with self._jobs_lock:
+                    current = self._jobs.get(job_id)
+                    if current is not None:
+                        current.status = "completed"
+                        current.result = result
+                        current.error = None
+            except Exception as ex:
+                async with self._jobs_lock:
+                    current = self._jobs.get(job_id)
+                    if current is not None:
+                        current.status = "failed"
+                        current.error = str(ex)
+            finally:
+                async with self._jobs_lock:
+                    current = self._jobs.get(job_id)
+                    if current is not None and hasattr(current, "_request"):
+                        delattr(current, "_request")
+
+                self._queue.task_done()
+
+    def _request_key(self, request: RiskRequest) -> str:
+        return f"{request.age}:{request.claims}:{round(float(request.amount), 2)}"
+
+    def _try_get_cache(self, key: str) -> RiskResponse | None:
+        entry = self._cache.get(key)
+        if entry is None:
+            return None
+
+        now = datetime.now(timezone.utc)
+        if entry.expires_at <= now:
+            self._cache.pop(key, None)
+            return None
+
+        return deepcopy(entry.response)
+
+    def _store_cache(self, key: str, response: RiskResponse) -> None:
+        ttl = max(1, self._cache_ttl_seconds)
+        expires_at = datetime.now(timezone.utc) + timedelta(seconds=ttl)
+        self._cache[key] = _CacheEntry(response=deepcopy(response), expires_at=expires_at)
 
     def _dynamic_decision(self, request: RiskRequest, score: float) -> Dict[str, str] | None:
         try:
@@ -125,7 +264,7 @@ class RiskAgentService:
                 "decision": "Reject",
                 "reason": "High claim amount combined with elevated claim frequency",
             }
-        elif score >= 0.4:
+        if score >= 0.4:
             return {
                 "decision": "Review",
                 "reason": "Moderate risk profile requiring manual underwriter review",
