@@ -28,8 +28,33 @@ Final business decision is deterministic in .NET (not delegated to AI):
 - Output validation after Python call (`score` must be `[0,1]`, reason required)
 - Retry policy for external AI service calls
 
+## Queue / Cache / Fallback / Orchestration
+The Python service now includes explicit runtime orchestration patterns:
+
+- `Queue`:
+  - Async jobs are enqueued and processed by a background worker.
+  - Endpoints:
+    - `POST /api/risk/analyze/async` -> returns `job_id`
+    - `GET /api/risk/jobs/{job_id}` -> returns job status/result
+
+- `Cache`:
+  - In-memory TTL cache for repeated requests (`age/claims/amount` key).
+  - Cache TTL is configurable via `RISK_CACHE_TTL_SECONDS` (default: `300`).
+
+- `Fallback`:
+  - If LLM orchestration is unavailable/fails, deterministic logic is used.
+  - Response includes `source` metadata: `cache` / `llm` / `fallback`.
+
+- `Orchestration`:
+  - Sync path: immediate response from `POST /api/risk/analyze`
+  - Async path: queued execution + polling by job id
+  - Worker lifecycle is attached to FastAPI startup/shutdown events.
+
 ## Endpoints
 - `POST /api/risk`
+- `POST /api/risk/analyze` (sync)
+- `POST /api/risk/analyze/async` (enqueue async job)
+- `GET /api/risk/jobs/{job_id}` (poll async job status)
 - Existing municipal endpoints remain available and unchanged.
 
 Example request:
@@ -96,3 +121,8 @@ Run and open:
 
 ## Notes
 This implementation is production-oriented scaffolding: clean separation of concerns, deterministic decisions, and safe AI integration.
+
+## Reliability Principles
+- AI is an advisory layer, not an authority.
+- Deterministic guardrails are enforced above the model.
+- The system is designed to degrade gracefully when AI components are unavailable.
