@@ -1,34 +1,43 @@
 from fastapi import APIRouter, HTTPException, status
 
 from models.risk_models import RiskJobAcceptedResponse, RiskJobStatusResponse, RiskRequest, RiskResponse
+from orchestration.commands import AnalyzeRiskSyncCommand, EnqueueRiskAnalysisCommand
+from orchestration.orchestrator import RiskOrchestrator
+from orchestration.store import build_saga_store
 from services.risk_agent_service import RiskAgentService
 
 router = APIRouter(prefix="/api/risk", tags=["risk"])
-agent_service = RiskAgentService()
+risk_service = RiskAgentService()
+orchestrator = RiskOrchestrator(risk_service=risk_service, store=build_saga_store())
 
 
 @router.post("/analyze", response_model=RiskResponse)
-def analyze_risk(request: RiskRequest) -> RiskResponse:
-    return agent_service.analyze_sync(request)
+async def analyze_risk(request: RiskRequest) -> RiskResponse:
+    return await orchestrator.analyze_sync(AnalyzeRiskSyncCommand(request=request))
 
 
 @router.post("/analyze/async", response_model=RiskJobAcceptedResponse, status_code=status.HTTP_202_ACCEPTED)
 async def analyze_risk_async(request: RiskRequest) -> RiskJobAcceptedResponse:
-    job_id = await agent_service.enqueue_analysis(request)
-    return RiskJobAcceptedResponse(job_id=job_id, status="queued")
+    saga = await orchestrator.enqueue(EnqueueRiskAnalysisCommand(request=request))
+    return RiskJobAcceptedResponse(job_id=saga.job_id, status="queued")
 
 
 @router.get("/jobs/{job_id}", response_model=RiskJobStatusResponse)
 async def get_risk_job(job_id: str) -> RiskJobStatusResponse:
-    job = await agent_service.get_job_status(job_id)
-    if job is None:
+    saga = await orchestrator.get_saga(job_id)
+    if saga is None:
         raise HTTPException(status_code=404, detail=f"Job '{job_id}' was not found.")
-    return job
+    return RiskJobStatusResponse(
+        job_id=saga.job_id,
+        status=saga.status,
+        result=saga.result,
+        error=saga.error,
+    )
 
 
 async def start_background_worker() -> None:
-    await agent_service.start_worker()
+    await orchestrator.start()
 
 
 async def stop_background_worker() -> None:
-    await agent_service.stop_worker()
+    await orchestrator.stop()
