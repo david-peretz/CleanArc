@@ -19,15 +19,27 @@ public static class ServiceCollectionExtensions
         if (useInMemory)
         {
             services.AddDbContext<RiskDecisionSystemDbContext>(options => options.UseInMemoryDatabase("CleanArcInsuranceDbDev"));
+            services.AddDbContext<ReportingDbContext>(options => options.UseInMemoryDatabase("CleanArcInsuranceReportDbDev"));
             services.AddScoped<IInsuranceClaimRepository, EfInsuranceClaimRepository>();
+            services.AddScoped<IRiskAnalysisSagaRepository, EfRiskAnalysisSagaRepository>();
+            services.AddScoped<IRiskOutboxRepository, EfRiskOutboxRepository>();
+            services.AddScoped<IRiskReportReadRepository, EfRiskReportReadRepository>();
+            services.AddScoped<IRiskProjectionInboxRepository, EfRiskProjectionInboxRepository>();
         }
         else
         {
             var connectionString = configuration.GetConnectionString("DefaultConnection")
                 ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection");
+            var reportingConnectionString = configuration.GetConnectionString("ReportingConnection")
+                ?? throw new InvalidOperationException("Missing ConnectionStrings:ReportingConnection");
 
             services.AddDbContext<RiskDecisionSystemDbContext>(options => options.UseSqlServer(connectionString));
+            services.AddDbContext<ReportingDbContext>(options => options.UseSqlServer(reportingConnectionString));
             services.AddScoped<IInsuranceClaimRepository, EfInsuranceClaimRepository>();
+            services.AddScoped<IRiskAnalysisSagaRepository, EfRiskAnalysisSagaRepository>();
+            services.AddScoped<IRiskOutboxRepository, EfRiskOutboxRepository>();
+            services.AddScoped<IRiskReportReadRepository, EfRiskReportReadRepository>();
+            services.AddScoped<IRiskProjectionInboxRepository, EfRiskProjectionInboxRepository>();
         }
 
         services.AddScoped<IPriorityScoringPolicy, InsuranceClaimPriorityScoringPolicy>();

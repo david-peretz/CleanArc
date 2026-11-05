@@ -1,4 +1,6 @@
 using CleanArc.Domain.Claims;
+using CleanArc.Domain.Integration;
+using CleanArc.Domain.Orchestration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +15,8 @@ public sealed class RiskDecisionSystemDbContext : IdentityDbContext<IdentityUser
     }
 
     public DbSet<InsuranceClaim> InsuranceClaims => Set<InsuranceClaim>();
+    public DbSet<RiskAnalysisSaga> RiskAnalysisSagas => Set<RiskAnalysisSaga>();
+    public DbSet<RiskOutboxMessage> RiskOutboxMessages => Set<RiskOutboxMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +38,25 @@ public sealed class RiskDecisionSystemDbContext : IdentityDbContext<IdentityUser
             owned.Property(p => p.Street).HasColumnName("Street").HasMaxLength(180).IsRequired();
             owned.Property(p => p.CityArea).HasColumnName("CityArea").HasMaxLength(80).IsRequired();
         });
+
+        var saga = modelBuilder.Entity<RiskAnalysisSaga>();
+        saga.ToTable("RiskAnalysisSagas");
+        saga.HasKey(x => x.Id);
+        saga.Property(x => x.Status).HasConversion<int>().IsRequired();
+        saga.Property(x => x.Decision).HasConversion<int>();
+        saga.Property(x => x.Reason).HasMaxLength(1000).IsRequired();
+        saga.Property(x => x.Error).HasMaxLength(1000).IsRequired();
+        saga.Property(x => x.Amount).HasColumnType("decimal(18,2)");
+        saga.HasIndex(x => x.Status);
+        saga.HasIndex(x => x.CreatedAtUtc);
+
+        var outbox = modelBuilder.Entity<RiskOutboxMessage>();
+        outbox.ToTable("RiskOutboxMessages");
+        outbox.HasKey(x => x.Id);
+        outbox.Property(x => x.EventType).HasMaxLength(200).IsRequired();
+        outbox.Property(x => x.Payload).HasColumnType("nvarchar(max)").IsRequired();
+        outbox.HasIndex(x => x.PublishedAtUtc);
+        outbox.HasIndex(x => x.OccurredAtUtc);
     }
 }
 
