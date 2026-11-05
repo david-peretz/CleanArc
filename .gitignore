@@ -18,3 +18,8 @@ obj/
 # OS files
 .DS_Store
 Thumbs.db
+
+
+CLAUDE.md
+build_diag.log
+build.log
